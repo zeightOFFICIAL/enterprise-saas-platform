@@ -1,8 +1,17 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver.Core.Configuration;
+using saas_platform.Backend.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+builder.Services.AddDbContext<PostgresDbContext>();
 builder.Services.AddOpenApi();
+builder.Services.AddSingleton<MongoService>();
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -12,7 +21,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+app.MapControllers();
+//app.UseHttpsRedirection();
 
 var summaries = new[]
 {
