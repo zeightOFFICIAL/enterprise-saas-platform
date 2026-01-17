@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using saas_platform.Backend.Data;
 
 namespace saas_platform.backend.Controller
@@ -7,6 +8,7 @@ namespace saas_platform.backend.Controller
     [Route("weatherforecast")]
     public class WeatherForecastController : ControllerBase
     {
+        [Authorize]
         [HttpGet("test-db")]
         public string TestDb(
         [FromServices] PostgresDbContext db,

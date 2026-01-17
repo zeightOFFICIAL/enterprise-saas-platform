@@ -1,13 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Identity;
 
 namespace saas_platform.Backend.Entities
 {
-    public class User
+    public class User : IdentityUser<Guid>
     {
-        [Key]
-        public Guid Id { get; set; }
         public string Email { get; set; }
-        public string PasswordHash { get; set; }
-        public string Role { get; set; }
+        public string Password { get; set; } = "Password";
     }
 }

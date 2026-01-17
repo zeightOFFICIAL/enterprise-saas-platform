@@ -1,1 +1,28 @@
 # Docker Compose for local dev environment
+
+version: '3.8'
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: saasuser
+      POSTGRES_PASSWORD: saaspassword  # Change in prod; use secrets
+      POSTGRES_DB: saasdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: saasuser
+      MONGO_INITDB_ROOT_PASSWORD: saaspassword
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  postgres-data:
+  mongo-data:
