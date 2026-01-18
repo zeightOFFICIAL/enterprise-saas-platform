@@ -2,14 +2,14 @@
 using Microsoft.AspNetCore.Mvc;
 using saas_platform.Backend.Data;
 
-namespace saas_platform.backend.Controller
+namespace saas_platform.backend.Controllers
 {
     [ApiController]
     [Route("weatherforecast")]
     public class WeatherForecastController : ControllerBase
     {
-        [Authorize]
         [HttpGet("test-db")]
+        [Authorize]
         public string TestDb(
         [FromServices] PostgresDbContext db,
         [FromServices] MongoService mongo)
@@ -17,6 +17,17 @@ namespace saas_platform.backend.Controller
             _ = db.Users.Count(); 
             _ = mongo;
             return "DBs connected";
+        }
+
+        [HttpGet("test-db-admin")]
+        [Authorize(Roles = "Admin")]
+        public string TestDbAdmin(
+        [FromServices] PostgresDbContext db,
+        [FromServices] MongoService mongo)
+        {
+            _ = db.Users.Count();
+            _ = mongo;
+            return "DBs connected by admin";
         }
     }
 }

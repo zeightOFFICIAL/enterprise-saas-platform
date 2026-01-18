@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver.Core.Configuration;
 using saas_platform.Backend.Data;
 using saas_platform.Backend.Entities;
+using saas_platform.Backend.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,7 +44,11 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]))
     };
 });
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"))
+    .AddPolicy("UserOrAdmin", policy => policy.RequireRole("User", "Admin"));
 builder.Services.AddAuthorization();
+
 
 var app = builder.Build();
 
@@ -74,6 +79,12 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
+
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+    await RoleSeeder.SeedRoles(roleManager);
+}
 
 app.Run();
 
