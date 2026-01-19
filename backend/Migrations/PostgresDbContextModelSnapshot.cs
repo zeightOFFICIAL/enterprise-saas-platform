@@ -158,20 +158,31 @@ namespace saas_platform.backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("PlanType")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CurrentPeriodEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Plan")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<string>("StripeCustomerId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("StripeSubscriptionId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("TenantId");
 
                     b.ToTable("Subscriptions");
                 });
@@ -190,7 +201,6 @@ namespace saas_platform.backend.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
@@ -341,7 +351,7 @@ namespace saas_platform.backend.Migrations
                 {
                     b.HasOne("saas_platform.Backend.Entities.User", null)
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

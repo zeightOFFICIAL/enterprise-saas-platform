@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace saas_platform.backend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Restored : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -31,13 +31,12 @@ namespace saas_platform.backend.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Role = table.Column<string>(type: "text", nullable: false),
-                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                     Password = table.Column<string>(type: "text", nullable: false),
+                    EmailConfirmed = table.Column<bool>(type: "boolean", nullable: false),
                     UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     NormalizedEmail = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    EmailConfirmed = table.Column<bool>(type: "boolean", nullable: false),
                     PasswordHash = table.Column<string>(type: "text", nullable: true),
                     SecurityStamp = table.Column<string>(type: "text", nullable: true),
                     ConcurrencyStamp = table.Column<string>(type: "text", nullable: true),
@@ -51,6 +50,26 @@ namespace saas_platform.backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RefreshTokens",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Token = table.Column<string>(type: "text", nullable: false),
+                    Expires = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsRevoked = table.Column<bool>(type: "boolean", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByIp = table.Column<string>(type: "text", nullable: false),
+                    Revoked = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RevokedByIp = table.Column<string>(type: "text", nullable: true),
+                    ReplacedByToken = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RefreshTokens", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -164,16 +183,20 @@ namespace saas_platform.backend.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    PlanType = table.Column<string>(type: "text", nullable: false),
-                    Status = table.Column<string>(type: "text", nullable: false)
+                    TenantId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Plan = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    StripeCustomerId = table.Column<string>(type: "text", nullable: true),
+                    StripeSubscriptionId = table.Column<string>(type: "text", nullable: true),
+                    CurrentPeriodEnd = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Subscriptions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Subscriptions_AspNetUsers_UserId",
-                        column: x => x.UserId,
+                        name: "FK_Subscriptions_AspNetUsers_TenantId",
+                        column: x => x.TenantId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -217,9 +240,9 @@ namespace saas_platform.backend.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Subscriptions_UserId",
+                name: "IX_Subscriptions_TenantId",
                 table: "Subscriptions",
-                column: "UserId");
+                column: "TenantId");
         }
 
         /// <inheritdoc />
@@ -239,6 +262,9 @@ namespace saas_platform.backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
+
+            migrationBuilder.DropTable(
+                name: "RefreshTokens");
 
             migrationBuilder.DropTable(
                 name: "Subscriptions");

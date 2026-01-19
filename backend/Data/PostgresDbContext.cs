@@ -23,7 +23,7 @@ namespace saas_platform.Backend.Data
             modelBuilder.Entity<Subscription>()
                 .HasOne<User>()
                 .WithMany()
-                .HasForeignKey(s => s.UserId)
+                .HasForeignKey(s => s.TenantId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
