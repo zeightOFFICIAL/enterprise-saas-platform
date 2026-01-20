@@ -12,8 +12,7 @@ using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 
 builder.Services.AddDbContext<PostgresDbContext>(options =>
     options.UseNpgsql(
@@ -26,7 +25,7 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>()
     .AddEntityFrameworkStores<PostgresDbContext>()
     .AddDefaultTokenProviders();
 
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");  // Add to appsettings.json later
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -56,7 +55,6 @@ StripeConfiguration.ApiKey =
     builder.Configuration["Stripe:SecretKey"];
 
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
