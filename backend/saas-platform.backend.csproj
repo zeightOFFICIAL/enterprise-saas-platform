@@ -22,6 +22,7 @@
     </PackageReference>
     <PackageReference Include="MongoDB.Driver" Version="3.6.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <PackageReference Include="Stripe.net" Version="50.2.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
   </ItemGroup>
 

@@ -8,6 +8,7 @@ using saas_platform.Backend.Data;
 using saas_platform.Backend.Entities;
 using saas_platform.Backend.Services;
 using System.Text;
+using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +52,9 @@ builder.Services.AddAuthorization();
 
 
 var app = builder.Build();
+StripeConfiguration.ApiKey =
+    builder.Configuration["Stripe:SecretKey"];
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
