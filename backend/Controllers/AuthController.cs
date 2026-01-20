@@ -41,6 +41,21 @@ namespace saas_platform.backend.Controllers
                 new { userId = user.Id, code = encodedToken },
                 protocol: Request.Scheme);
             await _userManager.AddToRoleAsync(user, "User");
+            var subscription = await _context.Subscriptions
+            .SingleOrDefaultAsync(x => x.TenantId == user.Id);
+
+                    if (subscription == null)
+                    {
+                        subscription = new Subscription
+                        {
+                            TenantId = user.Id,
+                            Plan = SubscriptionPlan.Free,
+                            Status = "Active",
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        await _context.Subscriptions.AddAsync(subscription);
+                        await _context.SaveChangesAsync();
+                    }
             return Ok(new
             {
                 Message = "User registered. Please check your email to confirm.",
@@ -141,12 +156,12 @@ namespace saas_platform.backend.Controllers
         private async Task<string> GenerateJwtToken(User user)
         {
             var roles = await _userManager.GetRolesAsync(user);
-
             var claims = new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, user.Email),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new(ClaimTypes.NameIdentifier, user.Id.ToString())
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new("TenantId", user.Id.ToString())
             };
 
             claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
@@ -163,6 +178,7 @@ namespace saas_platform.backend.Controllers
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
 
         private static string GenerateRefreshToken()
         {
