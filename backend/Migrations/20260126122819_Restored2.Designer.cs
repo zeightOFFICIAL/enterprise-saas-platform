@@ -12,8 +12,8 @@ using saas_platform.backend.Data;
 namespace saas_platform.backend.Migrations
 {
     [DbContext(typeof(PostgresDbContext))]
-    [Migration("20260119130037_Restored")]
-    partial class Restored
+    [Migration("20260126122819_Restored2")]
+    partial class Restored2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -223,10 +223,6 @@ namespace saas_platform.backend.Migrations
                     b.Property<string>("NormalizedUserName")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");

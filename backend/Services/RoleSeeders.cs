@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 
-namespace saas_platform.Backend.Services
+namespace saas_platform.backend.Services
 {
 
     public static class RoleSeeder

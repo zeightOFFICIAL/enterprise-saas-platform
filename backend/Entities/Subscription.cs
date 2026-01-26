@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace saas_platform.Backend.Entities
+namespace saas_platform.backend.Entities
 {
     public enum SubscriptionPlan
     {

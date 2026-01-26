@@ -1,15 +1,15 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using saas_platform.Backend.Data;
-using saas_platform.Backend.Entities;
+using saas_platform.backend.Data;
+using saas_platform.backend.Entities;
 using Stripe;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
 
-namespace saas_platform.Backend.Controllers
+namespace saas_platform.backend.Controllers
 {
     [ApiController]
     [Route("api/billing")]

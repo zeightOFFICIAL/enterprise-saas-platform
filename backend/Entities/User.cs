@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Identity;
 
-namespace saas_platform.Backend.Entities
+namespace saas_platform.backend.Entities
 {
     public class User : IdentityUser<Guid>
     {
-        public string Password { get; set; } = "Password";
-        public bool EmailConfirmed { get; set; } = false;
+        // Do not store plaintext password or duplicate EmailConfirmed.
+        // Use IdentityUser's built-in PasswordHash and EmailConfirmed.
+
     }
 }

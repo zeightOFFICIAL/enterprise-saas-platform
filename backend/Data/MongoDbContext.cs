@@ -1,7 +1,7 @@
 ﻿using MongoDB.Driver;
-using saas_platform.Backend.Entities;
+using saas_platform.backend.Entities;
 
-namespace saas_platform.Backend.Data
+namespace saas_platform.backend.Data
 {
     public class MongoService
     {

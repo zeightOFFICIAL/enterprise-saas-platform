@@ -2,9 +2,8 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using saas_platform.backend.Entities;
-using saas_platform.Backend.Entities;
 
-namespace saas_platform.Backend.Data
+namespace saas_platform.backend.Data
 {
     public class PostgresDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     {

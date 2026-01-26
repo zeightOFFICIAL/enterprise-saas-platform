@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using saas_platform.Backend.Data;
+using saas_platform.backend.Data;
 
 namespace saas_platform.backend.Controllers
 {

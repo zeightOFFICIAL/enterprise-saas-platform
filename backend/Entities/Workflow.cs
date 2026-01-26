@@ -1,7 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace saas_platform.Backend.Entities
+namespace saas_platform.backend.Entities
 {
     public class Workflow
     {
