@@ -2,12 +2,11 @@
 
 namespace saas_platform.backend.Services
 {
-
     public static class RoleSeeder
     {
         public static async Task SeedRoles(RoleManager<IdentityRole<Guid>> roleManager)
         {
-            string[] roles = { "Admin", "User" };
+            string[] roles = { "Admin", "AdminLevel2", "Moderator", "User" };
             foreach (var role in roles)
             {
                 if (!await roleManager.RoleExistsAsync(role))

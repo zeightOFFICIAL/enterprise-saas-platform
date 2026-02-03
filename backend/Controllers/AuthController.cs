@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +9,6 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
-
 using saas_platform.backend.Data;
 using saas_platform.backend.Dtos;
 using saas_platform.backend.Entities;
@@ -34,6 +32,30 @@ namespace saas_platform.backend.Controllers
         private readonly PostgresDbContext _context = context;
         private readonly IMemoryCache _cache = cache;
         private readonly ILogger<AuthController> _logger = logger;
+
+        private bool RateLimit(string key, int maxAttempts, TimeSpan window)
+        {
+            var now = DateTime.UtcNow;
+            var entry = _cache.GetOrCreate(
+                key,
+                e =>
+                {
+                    e.AbsoluteExpirationRelativeToNow = window;
+                    return (Count: 0, Start: now);
+                }
+            );
+
+            if (entry.Count >= maxAttempts)
+                return false;
+
+            _cache.Set(
+                key,
+                (entry.Count + 1, entry.Start),
+                new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = window }
+            );
+
+            return true;
+        }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
@@ -95,6 +117,13 @@ namespace saas_platform.backend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!RateLimit($"rl:login:{ip}:{dto.Email}", 10, TimeSpan.FromMinutes(10)))
+                return StatusCode(
+                    429,
+                    new { message = "Too many login attempts. Try again later." }
+                );
+
             _logger.LogInformation("Login attempt for {Email}", dto.Email);
 
             var user = await _userManager.FindByEmailAsync(dto.Email);
@@ -144,13 +173,50 @@ namespace saas_platform.backend.Controllers
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh([FromBody] RefreshRequestDto request)
         {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!RateLimit($"rl:refresh:{ip}", 30, TimeSpan.FromMinutes(10)))
+                return StatusCode(
+                    429,
+                    new { message = "Too many refresh attempts. Try again later." }
+                );
+
             var requestHash = ComputeSha256Hash(request.RefreshToken);
 
             var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(t =>
-                t.Token == requestHash && !t.IsRevoked
+                t.Token == requestHash
             );
 
-            if (storedToken == null || storedToken.Expires < DateTime.UtcNow)
+            if (storedToken == null)
+            {
+                _logger.LogWarning("Refresh failed: invalid or expired refresh token");
+                return Unauthorized(new { message = "Invalid or expired refresh token" });
+            }
+
+            if (storedToken.IsRevoked)
+            {
+                _logger.LogWarning(
+                    "Refresh token reuse detected (revoked token presented). Revoking all active tokens for {UserId}",
+                    storedToken.UserId
+                );
+
+                var now = DateTime.UtcNow;
+                var activeTokens = await _context
+                    .RefreshTokens.Where(t => t.UserId == storedToken.UserId && !t.IsRevoked)
+                    .ToListAsync();
+
+                foreach (var t in activeTokens)
+                {
+                    t.IsRevoked = true;
+                    t.Revoked = now;
+                    t.RevokedByIp = ip;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Unauthorized(new { message = "Refresh token reuse detected" });
+            }
+
+            if (storedToken.Expires < DateTime.UtcNow)
             {
                 _logger.LogWarning("Refresh failed: invalid or expired refresh token");
                 return Unauthorized(new { message = "Invalid or expired refresh token" });
@@ -261,6 +327,10 @@ namespace saas_platform.backend.Controllers
             [FromBody] ResetPasswordRequestDto dto
         )
         {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!RateLimit($"rl:pwreset:{ip}:{dto.Email}", 5, TimeSpan.FromMinutes(30)))
+                return StatusCode(429, new { message = "Too many requests. Try again later." });
+
             var user = await _userManager.FindByEmailAsync(dto.Email);
             if (user == null)
                 return Ok(new { message = "If the email exists, a reset link was sent." });
@@ -281,6 +351,10 @@ namespace saas_platform.backend.Controllers
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!RateLimit($"rl:pwreset-confirm:{ip}:{dto.UserId}", 10, TimeSpan.FromMinutes(30)))
+                return StatusCode(429, new { message = "Too many attempts. Try again later." });
+
             var user = await _userManager.FindByIdAsync(dto.UserId);
             if (user == null)
                 return NotFound();
@@ -302,6 +376,10 @@ namespace saas_platform.backend.Controllers
         [Authorize]
         public async Task<IActionResult> Enable2Fa([FromBody] Enable2FaDto _)
         {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!RateLimit($"rl:2fa-enable:{ip}", 10, TimeSpan.FromMinutes(10)))
+                return StatusCode(429, new { message = "Too many attempts. Try again later." });
+
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var code = new Random().Next(100000, 999999).ToString();
             _cache.Set($"2fa:{userId}", code, TimeSpan.FromMinutes(10));
@@ -314,6 +392,10 @@ namespace saas_platform.backend.Controllers
         [Authorize]
         public async Task<IActionResult> Verify2Fa([FromBody] Verify2FaDto dto)
         {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!RateLimit($"rl:2fa-verify:{ip}", 20, TimeSpan.FromMinutes(10)))
+                return StatusCode(429, new { message = "Too many attempts. Try again later." });
+
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             if (!_cache.TryGetValue<string>($"2fa:{userId}", out var expected))
                 return BadRequest(new { message = "No 2FA challenge found or code expired" });
@@ -333,6 +415,10 @@ namespace saas_platform.backend.Controllers
         [Authorize]
         public async Task<IActionResult> AddPhone([FromBody] AddPhoneDto dto)
         {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!RateLimit($"rl:phone-add:{ip}", 10, TimeSpan.FromMinutes(10)))
+                return StatusCode(429, new { message = "Too many attempts. Try again later." });
+
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var code = new Random().Next(100000, 999999).ToString();
             _cache.Set($"phone:{userId}:{dto.PhoneNumber}", code, TimeSpan.FromMinutes(10));
@@ -347,6 +433,10 @@ namespace saas_platform.backend.Controllers
         [Authorize]
         public async Task<IActionResult> VerifyPhone([FromBody] VerifyPhoneDto dto)
         {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!RateLimit($"rl:phone-verify:{ip}", 20, TimeSpan.FromMinutes(10)))
+                return StatusCode(429, new { message = "Too many attempts. Try again later." });
+
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             if (!_cache.TryGetValue<string>($"phone:{userId}:{dto.PhoneNumber}", out var expected))
                 return BadRequest(new { message = "No verification found or code expired" });
@@ -408,9 +498,13 @@ namespace saas_platform.backend.Controllers
 
             claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_config["JwtSettings:SecretKey"])
-            );
+            var jwtSecret = Environment.GetEnvironmentVariable("JwtSettings__SecretKey");
+            if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+                throw new InvalidOperationException(
+                    "JwtSettings__SecretKey must be provided via .env/environment variables (>= 32 chars)."
+                );
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
